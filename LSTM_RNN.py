@@ -4,18 +4,30 @@ from keras.models import Sequential
 from keras.layers import LSTM
 from keras.layers import GRU
 from keras.layers import Dense
+from keras.layers import Flatten
+from keras.layers.convolutional import Conv1D
+from keras.layers.convolutional import MaxPooling1D
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import random
+import statsmodels.api as sm
 
 
+
+from patsy import dmatrices
+
+#Wybieramy ilsc probek
 number_of_samples = 4
+#wybieramy długosc probek
 length_of_sample = 750
+#wczytujemy dane
 sig = pd.read_csv("syg1.csv")
 sig.head(10)
+#Wybieramy próbki przypadkowo
 k = random.sample(range(int(2/3 * length_of_sample),int(len(sig)-1/3 * length_of_sample)), k =number_of_samples)
 samples = []
+#skalujemy dane
 input_feature= sig.iloc[:,[2,5]].values
 sc= MinMaxScaler(feature_range=(0,1))
 input_feature[:,:] = sc.fit_transform(input_feature[:,:])
@@ -23,6 +35,9 @@ for i in k:
     sample = input_feature[i-500:i+250,:]
     samples.append(sample)
 num = 1
+x  = plt.figure()
+
+#Wizualizacja danych
 for sample in samples:
     fig = plt.figure()
     one = fig.add_subplot(2,1,1)
@@ -36,7 +51,7 @@ for sample in samples:
     num+= 1
     
 
-#Forecasting using X and Y
+#podzial danych na x1 x2 x3 y1 y2 y3
 l =int( 1/3 * len(sample))
 input_data = []
 
@@ -52,86 +67,285 @@ for sample in samples:
     sample_conv = pd.DataFrame(list(zip(X_one, X_two, X_prim,Y_one,Y_two,Y_prim)), 
                columns =['X_one', 'X_two','X_prim','Y_one','Y_two','Y_prim'])
     input_data.append(sample_conv)
+    
+l =int( 2/3 * length_of_sample)
 
-train_data_inputs = []
+var_data = []
+for sample in samples:
+    x_train = sample[:l,0].tolist()
+    y_train = sample[:l,1].tolist()
+    x_test = sample[l:len(sample),0].tolist()
+    y_test = sample[l:len(sample),1].tolist()
+    data=[]
+    data.append(x_train)
+    data.append(y_train)
+    data.append(x_test)
+    data.append(y_test)
+    var_data.append(data)
+
+
+#Dane do nauki predykcji X
+train_data_inputs_x = []
 for input in input_data:
     train_data = []
     for i in range(len(X_one)):
         train_data.append(l)
         
-    train_data =  [input.iloc[:,0].values,input.iloc[:,3].values,input.iloc[:,4].values]
+    train_data =  [input.iloc[:,0].values,input.iloc[:,3].values,input.iloc[:,4].values] #X1 Y1 Y2
     train_data = np.array(train_data)
     train_data= train_data.transpose()
     
     train_data = train_data.reshape(1,250,3)
-    train_data_y = input.iloc[:,1].values
+    train_data_y = input.iloc[:,1].values #X2
     train_data_y = np.array(train_data_y)
     train_data_y = train_data_y.reshape(1,250)
     sample = []
     sample.append(train_data)
     sample.append(train_data_y)
-    train_data_inputs.append(sample)
+    train_data_inputs_x.append(sample)
+
+
+#Dane do nauki predykcji Y
+train_data_inputs_y = []
+
+for input in input_data:
+    train_data = []
+    for i in range(len(X_one)):
+        train_data.append(l)
+        
+    train_data =  [input.iloc[:,3].values,input.iloc[:,0].values,input.iloc[:,1].values]#Y1 X1 X2
+    train_data = np.array(train_data)
+    train_data= train_data.transpose()
     
-    
-#TEACHING THE MODEL
-    
-test_data_inputs = []
+    train_data = train_data.reshape(1,250,3)
+    train_data_y = input.iloc[:,4].values #Y2
+    train_data_y = np.array(train_data_y)
+    train_data_y = train_data_y.reshape(1,250)
+    sample = []
+    sample.append(train_data)
+    sample.append(train_data_y)
+    train_data_inputs_y.append(sample)
+#Dane do predykcji X
+test_data_inputs_x = []
 
 for input in input_data:
     test_data = []
-    test_data =  [input.iloc[:,1].values,input.iloc[:,4].values,input.iloc[:,5].values]
+    test_data =  [input.iloc[:,1].values,input.iloc[:,4].values,input.iloc[:,5].values] #X2 Y2 Y3
     test_data = np.array(test_data)
     test_data= test_data.transpose()
     
     test_data = test_data.reshape(1,250,3)
-    test_data_y = input.iloc[:,3].values
+    test_data_y = input.iloc[:,2].values #X3
     test_data_y = np.array(test_data_y)
     test_data_y = test_data_y.reshape(1,250)
     sample = []
     sample.append(test_data)
     sample.append(test_data_y)
-    test_data_inputs.append(sample)    
+    test_data_inputs_x.append(sample) 
+    
+#Dane do predykcji y  
+test_data_inputs_y = []
 
+for input in input_data:
+    test_data = []
+    test_data =  [input.iloc[:,4].values,input.iloc[:,1].values,input.iloc[:,2].values] #Y2 X2 X3
+    test_data = np.array(test_data)
+    test_data= test_data.transpose()
+    
+    test_data = test_data.reshape(1,250,3)
+    test_data_y = input.iloc[:,5].values #Y3
+    test_data_y = np.array(test_data_y)
+    test_data_y = test_data_y.reshape(1,250)
+    sample = []
+    sample.append(test_data)
+    sample.append(test_data_y)
+    test_data_inputs_y.append(sample) 
+
+n = 4 #wybór próbki
+#Model CNN
 model = Sequential()
-model.add(LSTM(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
-model.add(LSTM(units=30, return_sequences=True))
-model.add(LSTM(units=30))
-model.add(Dense(units=250))
-model.summary()
+model.add(Conv1D(filters=50, kernel_size=100, activation='relu', input_shape=(train_data.shape[1],3)))
+model.add(MaxPooling1D(pool_size=100))
+model.add(Flatten())
+model.add(Dense(500, activation='relu'))
+model.add(Dense(250))
 
-model.compile(optimizer='adam', loss='mean_squared_error')
+model.compile(optimizer='adam', loss='mse')
+
+model.fit(train_data_inputs_x[n-1][0],train_data_inputs_x[n-1][1] , epochs=100)
+
+yhat = model.predict(test_data_inputs_x[n-1][0])
+pred_cnn_x = np.transpose(yhat)
+
+plt.plot(pred_cnn_x)
+plt.plot(np.transpose(test_data_inputs_x[n-1][1]))
+plt.legend(['Prediction', 'Original'])
+
+#Model lstm do predykcji x
+model_lstm_x = Sequential()
+model_lstm_x.add(LSTM(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
+model_lstm_x.add(LSTM(units=30, return_sequences=True))
+model_lstm_x.add(LSTM(units=30))
+model_lstm_x.add(Dense(units=250))
+model_lstm_x.summary()
+model_lstm_x.compile(optimizer='adam', loss='mean_squared_error',metrics=['accuracy'])
+history_lstm_x = model_lstm_x.fit(train_data_inputs_x[0][0], train_data_inputs_x[0][1], epochs=50, batch_size=32)
+
+#Test modelu
+fig2 = plt.figure()
+predicted_value_lstm_x= model_lstm_x.predict(test_data_inputs_x[0][0])
+pred_lstm_x = np.transpose(predicted_value_lstm_x)
+test_data_inputs_x[0][1]
+plt.plot(pred_lstm_x)
+plt.plot(np.transpose(test_data_inputs_x[0][1]))
+plt.legend(['Prediction', 'Original'])
+fig2.show()
+
+#Wizualizacja procesu uczenia
+
+plt.plot(history_lstm_x.history['loss'])
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.show()
+
+
+
+#Model lstm do predykcji y
+model_lstm_y = Sequential()
+model_lstm_y.add(LSTM(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
+model_lstm_y.add(LSTM(units=30, return_sequences=True))
+model_lstm_y.add(LSTM(units=30))
+model_lstm_y.add(Dense(units=250))
+model_lstm_y.summary()
+
+model_lstm_y.compile(optimizer='adam', loss='mean_squared_error',metrics=['accuracy'])
+
+history_lstm_y = model_lstm_y.fit(train_data_inputs_y[0][0], train_data_inputs_y[0][1], epochs=50, batch_size=32)
+
+fig3 = plt.figure()
+predicted_value_lstm_y= model_lstm_y.predict(test_data_inputs_y[0][0])
+pred_lstm_y = np.transpose(predicted_value_lstm_y)
+test_data_inputs_y[0][1]
+plt.plot(pred_lstm_y)
+plt.plot(np.transpose(test_data_inputs_y[0][1]))
+plt.legend(['Prediction', 'Original'])
+fig3.show()
+
+
+#Model GRU do predykcji X
+model_gru_x = Sequential()
+model_gru_x.add(GRU(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
+model_gru_x.add(GRU(units=30, return_sequences=True))
+model_gru_x.add(GRU(units=30))
+model_gru_x.add(Dense(units=250))
+model_gru_x.summary()
+
+
+model_gru_x.compile(optimizer='adam', loss='mean_squared_error')
 
 #Wybieramy na którym samplu będziemy uczyć
-model.fit(train_data_inputs[0][0], train_data_inputs[0][1], epochs=50, batch_size=32)
+history_gru_x = model_gru_x.fit(train_data_inputs_x[0][0], train_data_inputs_x[0][1], epochs=50, batch_size=32)
 
 
-#Testing the model
-predicted_value_XY= model.predict(test_data_inputs[0][0])
-pred = np.transpose(predicted_value_XY)
-
-plt.plot(pred)
-
-fitt = np.transpose(train_data_y)
-plt.plot(fitt)
-
-model_gru = Sequential()
-model_gru.add(GRU(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
-model_gru.add(GRU(units=30, return_sequences=True))
-model_gru.add(GRU(units=30))
-model_gru.add(Dense(units=250))
-model_gru.summary()
+fig4 = plt.figure()
+predicted_gru_x= model_gru_x.predict(test_data_inputs_x[0][0])
+predicted_gru_x = np.transpose(predicted_gru_x)
+plt.plot(predicted_gru_x)
+plt.plot(np.transpose(test_data_inputs_x[0][1]))
+plt.legend(['Prediction', 'Original'])
+fig4.show()
 
 
-model_gru.compile(optimizer='adam', loss='mean_squared_error')
+
+
+
+#Model GRU do predykcji y
+model_gru_y = Sequential()
+model_gru_y.add(GRU(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
+model_gru_y.add(GRU(units=30, return_sequences=True))
+model_gru_y.add(GRU(units=30))
+model_gru_y.add(Dense(units=250))
+model_gru_y.summary()
+
+
+model_gru_y.compile(optimizer='adam', loss='mean_squared_error')
 
 #Wybieramy na którym samplu będziemy uczyć
-model_gru.fit(train_data_inputs[0][0], train_data_inputs[0][1], epochs=50, batch_size=32)
+history_gru_y = model_gru_y.fit(train_data_inputs_y[0][0], train_data_inputs_y[0][1], epochs=50, batch_size=32)
 
 
-predicted_value= model_gru.predict(test_data_inputs[0][0])
-pred = np.transpose(predicted_value)
 
-plt.plot(pred)
+fig5 = plt.figure()
+predicted_gru_y= model_gru_y.predict(test_data_inputs_y[0][0])
+predicted_gru_y = np.transpose(predicted_gru_y)
+plt.plot(predicted_gru_y)
+plt.plot(np.transpose(test_data_inputs_y[0][1]))
+plt.legend(['Prediction', 'Original'])
+fig5.show()
+
+
+
+#PREDYKCJA VAR
+
+def difference(dataset, interval):
+	diff = list()
+	for i in range(interval, len(dataset)):
+		value = dataset[i] - dataset[i - interval]
+		diff.append(value)
+	return diff
+
+def inverse_difference(last_ob, value):
+	return value + last_ob
+
+
+x_train = sample[250:l,0].tolist()
+y_train = sample[250:l,1].tolist()
+y_test = sample[l:len(sample),1].tolist()
+x_test = sample[l:len(sample),0].tolist()
+plt.plot(x_train)
+plt.plot(y_train)
+diff = difference(y_train, 80)
+plt.plot(diff)
+inverted = [inverse_difference(y_train[i], diff[i]) for i in range(len(diff))]
+plt.plot(inverted)
+data = []
+for i in range(len(x_train)):
+    row = [x_train[i],y_train[i]]
+    data.append(row)
+data_exog = y_test
+
+model = VARMAX(data, exog=data_exog, order=(1, 0))
+model_fit = model.fit(disp=False)
+# make prediction
+
+
+print(yhat)
+y_test= np.array(y_test).reshape(250,1)
+forecast = model_fit.forecast(250,exog = y_test)
+plt.plot(forecast)
+
+from statsmodels.tsa.statespace.varma import VARMA
+from statsmodels.tsa.vector_ar.var_model import VAR
+data = x_train
+data_exog = y_train
+model = VAR(data)
+model_fit = model.fit()
+yhat = model_fit.forecast(model_fit.y, steps=50)
+plt.plot(yhat)
+
+dta = sm.datasets.webuse('lutkepohl2', 'https://www.stata-press.com/data/r12/')
+dta.index = dta.qtr
+endog = dta.loc['1960-04-01':'1978-10-01', ['dln_inv', 'dln_inc', 'dln_consump']]
+
+exog = endog['dln_consump']
+mod = sm.tsa.VARMAX(endog[['dln_inv', 'dln_inc']], order=(2,0), trend='nc', exog=exog)
+res = mod.fit(maxiter=1000, disp=False)
+print(res.summary())
+
+
+
 
 
 input_feature= sig.iloc[0:30000,[1]].values
