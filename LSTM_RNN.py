@@ -35,7 +35,7 @@ for i in k:
     sample = input_feature[i-500:i+250,:]
     samples.append(sample)
 num = 1
-x  = plt.figure()
+
 
 #Wizualizacja danych
 for sample in samples:
@@ -49,7 +49,49 @@ for sample in samples:
     fig.suptitle('Sample number %i' %num , fontsize=16)
     plt.show()
     num+= 1
+def prep_sample(sample,l):
+    X_one = sample[0:l,0]
+    X_two = sample[l:2*l,0]
+    X_prim =sample[2*l:3*l,0]
+   
+    Y_one = sample[0:l,1]
+    Y_two = sample[l:2*l,1]
+    Y_prim = sample[2*l:3*l,1]
+    df = pd.DataFrame(list(zip(X_one, X_two, X_prim,Y_one,Y_two,Y_prim)), 
+               columns =['X_one', 'X_two','X_prim','Y_one','Y_two','Y_prim'])
+    train_data = []
+    for i in range(len(X_one)):
+        train_data.append(l)
+        
+    train_data =  [input.iloc[:,0].values,input.iloc[:,3].values,input.iloc[:,4].values] #X1 Y1 Y2
+    train_data = np.array(train_data)
+    train_data= train_data.transpose()
+    train_data = train_data.reshape(1,250,3)
+    train_data_y = input.iloc[:,1].values #X2
+    train_data_y = np.array(train_data_y)
+    train_data_y = train_data_y.reshape(1,250)
+    train_data_x = []
+    train_data_x.append(train_data)
+    train_data_x.append(train_data_y)
     
+    train_data = []
+    for i in range(len(X_one)):
+        train_data.append(l)
+        
+    train_data =  [input.iloc[:,3].values,input.iloc[:,0].values,input.iloc[:,1].values]#Y1 X1 X2
+    train_data = np.array(train_data)
+    train_data= train_data.transpose()
+    
+    train_data = train_data.reshape(1,250,3)
+    train_data_y = input.iloc[:,4].values #Y2
+    train_data_y = np.array(train_data_y)
+    train_data_y = train_data_y.reshape(1,250)
+    train_data_yy = []
+    train_data_yy.append(train_data)
+    train_data_yy.append(train_data_y)
+    return train_data_x, train_data_yy
+    
+x,y = prep_sample(sample,l)
 
 #podzial danych na x1 x2 x3 y1 y2 y3
 l =int( 1/3 * len(sample))
@@ -161,31 +203,31 @@ for input in input_data:
     sample.append(test_data_y)
     test_data_inputs_y.append(sample) 
 
-n = 4 #wybór próbki
-#Model CNN
-model = Sequential()
-model.add(Conv1D(filters=50, kernel_size=100, activation='relu', input_shape=(train_data.shape[1],3)))
-model.add(MaxPooling1D(pool_size=100))
-model.add(Flatten())
-model.add(Dense(500, activation='relu'))
-model.add(Dense(250))
+n = 2 #wybór próbki
+def create_model_cnn(train_data_input,train_data_output):
+    model_cnn_x = Sequential()
+    model_cnn_x.add(Conv1D(filters=50, kernel_size=100, activation='relu', input_shape=(train_data.shape[1],3)))
+    model_cnn_x.add(MaxPooling1D(pool_size=100))
+    model_cnn_x.add(Flatten())
+    model_cnn_x.add(Dense(500, activation='relu'))
+    model_cnn_x.add(Dense(250))
+    model_cnn_x.compile(optimizer='adam', loss='mse')
+    model_cnn_x.fit(train_data_input,train_data_output , epochs=100)
+    return model_cnn_x
 
-model.compile(optimizer='adam', loss='mse')
-
-model.fit(train_data_inputs_x[n-1][0],train_data_inputs_x[n-1][1] , epochs=100)
-
-yhat = model.predict(test_data_inputs_x[n-1][0])
-pred_cnn_x = np.transpose(yhat)
-
-plt.plot(pred_cnn_x)
+prediction_cnn_x = model_cnn_x.predict(test_data_inputs_x[n-1][0])
+prediction_cnn_x = np.transpose(prediction_cnn_x)
+plt.plot(prediction_cnn_x)
 plt.plot(np.transpose(test_data_inputs_x[n-1][1]))
 plt.legend(['Prediction', 'Original'])
+
 
 #Model lstm do predykcji x
 model_lstm_x = Sequential()
 model_lstm_x.add(LSTM(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
 model_lstm_x.add(LSTM(units=30, return_sequences=True))
 model_lstm_x.add(LSTM(units=30))
+model_lstm_x.add(Dense(500, activation='relu'))
 model_lstm_x.add(Dense(units=250))
 model_lstm_x.summary()
 model_lstm_x.compile(optimizer='adam', loss='mean_squared_error',metrics=['accuracy'])
@@ -239,6 +281,7 @@ model_gru_x = Sequential()
 model_gru_x.add(GRU(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
 model_gru_x.add(GRU(units=30, return_sequences=True))
 model_gru_x.add(GRU(units=30))
+model_gru_x.add(Dense(500, activation='relu'))
 model_gru_x.add(Dense(units=250))
 model_gru_x.summary()
 
