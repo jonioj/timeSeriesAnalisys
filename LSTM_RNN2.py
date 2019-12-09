@@ -77,25 +77,63 @@ def prep_sample(sample):
     
     return input_x
 
-def create_model_cnn(train_data_input,train_data_output,filters,kernel_size,activation,loss,epochs):
-    model_cnn_x = Sequential()
-    model_cnn_x.add(Conv1D(filters=50, kernel_size=100, activation='relu', input_shape=(train_data_input.shape[1],3)))
-    model_cnn_x.add(MaxPooling1D(pool_size=100))
-    model_cnn_x.add(Flatten())
-    model_cnn_x.add(Dense(500, activation='relu'))
-    model_cnn_x.add(Dense(250))
-    model_cnn_x.compile(optimizer='adam', loss='mse')
-    model_cnn_x.fit(train_data_input,train_data_output , epochs=100)
+def create_model_cnn(train_data_input,train_data_output):
+    model_cnn= Sequential()
+    model_cnn.add(Conv1D(filters=50, kernel_size=100, activation='relu', input_shape=(train_data_input.shape[1],3)))
+    model_cnn.add(MaxPooling1D(pool_size=100))
+    model_cnn.add(Flatten())
+    model_cnn.add(Dense(500, activation='relu'))
+    model_cnn.add(Dense(250))
+    model_cnn.compile(optimizer='adam', loss='mse')
+    history_cnn = model_cnn.fit(train_data_input,train_data_output , epochs=100)
     
-    return model_cnn_x
+    return model_cnn, history_cnn
 
+def create_model_lstm(train_data_input,train_data_output,):
+    model_lstm = Sequential()
+    model_lstm.add(LSTM(units=30, return_sequences= True, input_shape=(250,3)))
+    model_lstm.add(LSTM(units=30, return_sequences=True))
+    model_lstm.add(LSTM(units=30))
+    model_lstm.add(Dense(500, activation='relu'))
+    model_lstm.add(Dense(units=250))
+    model_lstm.summary()
+    model_lstm.compile(optimizer='adam', loss='mean_squared_error',metrics=['accuracy'])
+    history_lstm = model_lstm.fit(train_data_input, train_data_output, epochs=50, batch_size=32)
+    return model_lstm, history_lstm
+
+def create_model_gru(train_data_input,train_data_output,):
+    model_gru = Sequential()
+    model_gru.add(GRU(units=30, return_sequences= True, input_shape=(train_data_input.shape[1],3)))
+    model_gru.add(GRU(units=30, return_sequences=True))
+    model_gru.add(GRU(units=30))
+    model_gru.add(Dense(500, activation='relu'))
+    model_gru.add(Dense(units=250))
+    model_gru.summary()
+    model_gru.compile(optimizer='adam', loss='mean_squared_error',metrics=['accuracy'])
+    history_gru = model_gru.fit(train_data_input, train_data_output, epochs=50, batch_size=32)
+    return model_gru, history_gru
 
 show_signal(input_feature)
 scale_signal(input_feature)
 sample = pick_sample(5324,input_feature)
 show_signal(sample)
 x = prep_sample(sample)
-model = create_model_cnn(x[0],x[1])
-prediction = model.predict(x[0])
-prediction = np.transpose(prediction)
-plt.plot(prediction)
+
+model_cnn, history_cnn = create_model_cnn(x[0],x[1])
+prediction_cnn = model_cnn.predict(x[2])
+prediction_cnn = np.transpose(prediction_cnn)
+plt.plot(prediction_cnn)
+model_cnn
+x[0]
+model_lstm, history_lstm = create_model_lstm(x[0],x[1])
+prediction_lstm = model_lstm.predict(x[2])
+prediction_lstm = np.transpose(prediction_lstm)
+plt.plot(prediction_lstm)
+
+model_gru, history_gru = create_model_gru(x[0],x[1])
+prediction_gru = model_gru.predict(x[2])
+prediction_gru = np.transpose(prediction_gru)
+plt.plot(prediction_gru)
+
+fig = plt.figure()
+

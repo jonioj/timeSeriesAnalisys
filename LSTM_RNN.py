@@ -91,7 +91,7 @@ def prep_sample(sample,l):
     train_data_yy.append(train_data_y)
     return train_data_x, train_data_yy
     
-x,y = prep_sample(sample,l)
+
 
 #podzial danych na x1 x2 x3 y1 y2 y3
 l =int( 1/3 * len(sample))
@@ -221,7 +221,7 @@ plt.plot(prediction_cnn_x)
 plt.plot(np.transpose(test_data_inputs_x[n-1][1]))
 plt.legend(['Prediction', 'Original'])
 
-
+train_data.shape[1]
 #Model lstm do predykcji x
 model_lstm_x = Sequential()
 model_lstm_x.add(LSTM(units=30, return_sequences= True, input_shape=(train_data.shape[1],3)))
