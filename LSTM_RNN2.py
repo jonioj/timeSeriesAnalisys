@@ -12,15 +12,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import random
 import statsmodels.api as sm
+from IPython import get_ipython
 
 
-signal = pd.read_csv("syg1.csv")
+#signal = pd.read_csv("syg1.csv")
+#
+#input_feature= signal.iloc[:,[2,5]].values
 
-input_feature= signal.iloc[:,[2,5]].values
-
-
-l = 750
-sLength = 250
+get_ipython().run_line_magic('matplotlib', 'qt')
+l = 750 #sample length
+sLength = l/3
+t = 4444 #sample
 def show_signal(input_feature):
     fig = plt.figure()
     one = fig.add_subplot(2,1,1)
@@ -50,7 +52,7 @@ def prep_sample(sample):
     df = pd.DataFrame(list(zip(X_one, X_two, X_prim,Y_one,Y_two,Y_prim)), 
                columns =['X_one', 'X_two','X_prim','Y_one','Y_two','Y_prim'])
     
-    
+    #Predicting Signal 1
     train_data =  [df.iloc[:,0].values,df.iloc[:,3].values,df.iloc[:,4].values] #X1 Y1 Y2
     train_data = np.array(train_data)
     train_data= train_data.transpose()
@@ -75,7 +77,34 @@ def prep_sample(sample):
     input_x.append(test_data)
     input_x.append(test_data_y)
     
-    return input_x
+    #Predicting Signal 2
+    train_data = []
+    train_data =  [df.iloc[:,3].values,df.iloc[:,0].values,df.iloc[:,1].values] #Y1 X1 X2
+    train_data = np.array(train_data)
+    train_data= train_data.transpose()
+    
+    train_data = train_data.reshape(1,250,3)
+    train_data_y = df.iloc[:,4].values #Y2
+    train_data_y = np.array(train_data_y)
+    train_data_y = train_data_y.reshape(1,250)
+    
+    test_data = []
+    test_data =  [df.iloc[:,4].values,df.iloc[:,1].values,df.iloc[:,3].values] #Y2 X2 X3
+    test_data = np.array(test_data)
+    test_data= test_data.transpose()
+    test_data = test_data.reshape(1,250,3)
+    
+    test_data_y = df.iloc[:,5].values #Y3
+    test_data_y = np.array(test_data_y)
+    test_data_y = test_data_y.reshape(1,250) 
+    
+    input_y = []
+    input_y.append(train_data)
+    input_y.append(train_data_y)
+    input_y.append(test_data)
+    input_y.append(test_data_y)
+    
+    return input_x, input_y
 
 def create_model_cnn(train_data_input,train_data_output):
     model_cnn= Sequential()
@@ -113,27 +142,36 @@ def create_model_gru(train_data_input,train_data_output,):
     history_gru = model_gru.fit(train_data_input, train_data_output, epochs=50, batch_size=32)
     return model_gru, history_gru
 
-show_signal(input_feature)
-scale_signal(input_feature)
-sample = pick_sample(5324,input_feature)
-show_signal(sample)
-x = prep_sample(sample)
-
-model_cnn, history_cnn = create_model_cnn(x[0],x[1])
-prediction_cnn = model_cnn.predict(x[2])
-prediction_cnn = np.transpose(prediction_cnn)
-plt.plot(prediction_cnn)
-model_cnn
-x[0]
-model_lstm, history_lstm = create_model_lstm(x[0],x[1])
-prediction_lstm = model_lstm.predict(x[2])
-prediction_lstm = np.transpose(prediction_lstm)
-plt.plot(prediction_lstm)
-
-model_gru, history_gru = create_model_gru(x[0],x[1])
-prediction_gru = model_gru.predict(x[2])
-prediction_gru = np.transpose(prediction_gru)
-plt.plot(prediction_gru)
-
-fig = plt.figure()
+#show_signal(input_feature)
+#scale_signal(input_feature)
+#sample = pick_sample(t,input_feature)
+#show_signal(sample)
+#x,y = prep_sample(sample)
+#
+#model_cnn, history_cnn = create_model_cnn(x[0],x[1])
+#prediction_cnn = model_cnn.predict(x[2])
+#prediction_cnn = np.transpose(prediction_cnn)
+#plt.plot(prediction_cnn)
+#plt.plot(np.transpose(x[3]))
+#
+#
+#model_cnn, history_cnn = create_model_cnn(y[0],y[1])
+#prediction_cnn = model_cnn.predict(y[2])
+#prediction_cnn = np.transpose(prediction_cnn)
+#plt.plot(prediction_cnn)
+#plt.plot(np.transpose(y[3]))
+#
+#
+#
+#model_lstm, history_lstm = create_model_lstm(x[0],x[1])
+#prediction_lstm = model_lstm.predict(x[2])
+#prediction_lstm = np.transpose(prediction_lstm)
+#plt.plot(prediction_lstm)
+#
+#model_gru, history_gru = create_model_gru(x[0],x[1])
+#prediction_gru = model_gru.predict(x[2])
+#prediction_gru = np.transpose(prediction_gru)
+#plt.plot(prediction_gru)
+#
+#fig = plt.figure()
 
