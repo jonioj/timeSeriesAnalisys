@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import random
 import statsmodels.api as sm
 from IPython import get_ipython
+from sklearn.metrics import mean_squared_error as mse
 
 
 #signal = pd.read_csv("syg1.csv")
@@ -23,6 +24,9 @@ get_ipython().run_line_magic('matplotlib', 'qt')
 #l = 750 #sample length
 #sLength = l/3
 #t = 4444 #sample
+def compare(true,prediction):
+    x = mse(true,prediction)
+    return x
 def show_signal(input_feature):
     fig = plt.figure()
     one = fig.add_subplot(2,1,1)
