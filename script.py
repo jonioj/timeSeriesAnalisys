@@ -7,15 +7,21 @@ from keras.layers import Dense
 from keras.layers import Flatten
 from keras.layers.convolutional import Conv1D
 from keras.layers.convolutional import MaxPooling1D
+from keras import losses
 import numpy as np
 import pandas as pd
+from scipy.io import loadmat
+
 import matplotlib.pyplot as plt
 import random
-import statsmodels.api as sm
+#import statsmodels.api as sm
 from IPython import get_ipython
-from sklearn.metrics import mean_squared_error as mse
+from sklearn.metrics import mean_squared_error, mean_squared_log_error,r2_score
 
-
+true = [1,1,1]
+pred = [1,0,1]
+true = np.array(true)
+pred = np.array(pred)
 #signal = pd.read_csv("syg1.csv")
 #
 #input_feature= signal.iloc[:,[2,5]].values
@@ -24,9 +30,18 @@ get_ipython().run_line_magic('matplotlib', 'qt')
 #l = 750 #sample length
 #sLength = l/3
 #t = 4444 #sample
-def compare(true,prediction):
-    x = mse(true,prediction)
+def compare(method,true,prediction):
+    
+    if method == 'MSE':
+        x = mean_squared_error(true,prediction)
+    elif method == 'R2':
+        x = r2_score(true, prediction, sample_weight=None, multioutput='uniform_average')
+    elif method == 'MGD':
+        x = mean_squared_log_error(true, prediction, sample_weight=None, multioutput='uniform_average')
+
     return x
+
+
 def show_signal(input_feature):
     fig = plt.figure()
     one = fig.add_subplot(2,1,1)

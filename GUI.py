@@ -5,14 +5,17 @@ import script
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.io import loadmat
+
 
 root = tk.Tk()
 root.geometry("1000x600")
 
 def read_entry():
     print(e1.get())
-signal = pd.read_csv('syg1.csv')  
-input_feature= signal.iloc[:,[2,4]].values
+signal = loadmat('20.mat')
+signal = signal['data']   
+input_feature= signal[:,0:2]
 script.show_signal(input_feature)  
 def opens():
     global path
@@ -80,7 +83,7 @@ def analyse():
         fig4.show()
         
     elif(method.get() == 'GRU'):
-        model,history = script.create_model_lstm(inpt[0],inpt[1],activation.get(),optimizer.get(),loss.get(),int(e3.get()),int(l/3))
+        model,history = script.create_model_lstm(inpt[0],inpt[1],activation.get(),optimizer.get(),loss.get(),int(e4.get()),int(l/3))
         prediction_gru = model.predict(inpt[2])
         print(prediction_gru)
         pred = np.transpose(prediction_gru)
@@ -88,20 +91,21 @@ def analyse():
         plt.plot(pred)
         fig5.show()
     else:
-        print("blad")
+        print("Something is wrong")
 #    except:
 #        print("asda")
 
 
 def compare():
-    if (var3.get() == 'MSE'):
-        
-        print(script.compare(np.transpose(inpt[3]),pred))
-        x = script.compare(np.transpose(inpt[3]),pred)
-        tk.Label(root,text=x).grid(row=7, column = 4)
-        e4 = tk.Entry(root)
-        e4.grid(row=3,column = 5)
-        
+    if var3.get():
+        try:
+            print(script.compare(var3.get(),np.transpose(inpt[3]),pred))
+            x = script.compare(var3.get(),np.transpose(inpt[3]),pred)
+            tk.Label(root,text='Accuracy assessment').grid(row=7, column = 3)
+            tk.Label(root,text=x).grid(row=7, column = 4)
+            
+        except:
+            print("Something is wrong")
         #Tworzenie pliku raportu analizy
         
 
@@ -118,6 +122,9 @@ tk.Label(root,text="Time T0").grid(row=2, column = 0)
 e2 = tk.Entry(root)
 e2.grid(row=2,column = 1)
 
+tk.Label(root,text="Number of GRU units").grid(row=3, column = 0)
+e4 = tk.Entry(root)
+e4.grid(row=3,column = 1)
 
 
 tk.Label(root,text="Number of LSTM units").grid(row=3, column = 2)
@@ -173,7 +180,7 @@ B2.grid(row=5,column = 4)
 
 
 tk.Label(root,text="Choose evaluation method").grid(row = 6, column = 0)
-methods2 = ['MSE','MSA']
+methods2 = ['MSE','R2','MGD']
 var3 = tk.StringVar()
 drop3 = tk.OptionMenu(root,var3,*methods2)
 drop3.grid(row = 6,column = 2)
