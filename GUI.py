@@ -13,9 +13,12 @@ root.geometry("1000x600")
 
 def read_entry():
     print(e1.get())
-signal = loadmat('20.mat')
-signal = signal['data']   
-input_feature= signal[:,0:2]
+# signal = loadmat(r'C:\Users\jonas\OneDrive\Dokumenty\Studia\INZ\Sygnaly\20.mat')
+# signal = signal['data']
+# input_feature = signal[:,0:2]   
+signal = pd.read_csv('syg1.csv')
+input_feature= signal.iloc[:,[2,5]].values
+input_feature = script.scale_signal(input_feature)
 script.show_signal(input_feature)  
 def opens():
     global path
@@ -24,8 +27,8 @@ def opens():
     try:
         root.filename = filedialog.askopenfilename(initialdir  = "/",title="asds")
         path = root.filename
-        signal = pd.read_csv(path)
-        input_feature= signal.iloc[:,[2,4]].values
+        signal = loadmat(path)
+        input_feature= signal[:,0:2]
         script.show_signal(input_feature)
         
     except:
@@ -34,12 +37,14 @@ def opens():
 
 def sample():
     try:
+        
         global l
         t = int(e2.get())
         l = int(((int(e1.get()))/3)*3)
         global s
         global input_x
         global input_y
+        
         s = script.pick_sample(t,l,input_feature)
         script.show_signal(s)
         print(l)
@@ -147,31 +152,41 @@ B1 = tk.Button(root,text="show sample",command = sample).grid(row =2, column= 2)
 
 tk.Label(root,text="Choose optimizer").grid(row = 4, column = 0)
 optimizers = ['adam','adamax','nadam']
+optimizer = 'adam'
 optimizer = tk.StringVar()
+
 drop = tk.OptionMenu(root,optimizer,*optimizers)
 drop.grid(row = 4,column = 1)
 
 tk.Label(root,text="Choose loss function").grid(row = 4, column = 2)
 losses = ['mse','mean_absolute_error','squared_hinge']
+loss = 'mse'
 loss = tk.StringVar()
+
 drop = tk.OptionMenu(root,loss,*losses)
 drop.grid(row = 4,column = 3)
 
 tk.Label(root,text="Choose activation").grid(row = 4, column = 4)
+activation = 'relu'
 activations = ['relu','elu','tanh']
+
 activation = tk.StringVar()
 drop = tk.OptionMenu(root,activation,*activations)
 drop.grid(row = 4,column = 5)
 
 tk.Label(root,text="Choose method").grid(row = 5, column = 0)
 methods = ['CNN','LSTM','GRU']
+method = 'CNN'
 method = tk.StringVar()
+
 drop = tk.OptionMenu(root,method,*methods)
 drop.grid(row = 5,column = 1)
 
 tk.Label(root,text="Choose signal").grid(row = 5, column = 2)
 signals = ['Signal X','Signal Y']
+var2 = 'Signal X'
 var2 = tk.StringVar()
+
 drop2 = tk.OptionMenu(root,var2,*signals)
 drop2.grid(row = 5,column = 3)
 
@@ -180,6 +195,7 @@ B2.grid(row=5,column = 4)
 
 
 tk.Label(root,text="Choose evaluation method").grid(row = 6, column = 0)
+var3 = 'MSE'
 methods2 = ['MSE','R2','MGD']
 var3 = tk.StringVar()
 drop3 = tk.OptionMenu(root,var3,*methods2)

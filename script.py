@@ -11,6 +11,8 @@ from keras import losses
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat
+from keras import backend as K
+K.set_image_dim_ordering('th')
 
 import matplotlib.pyplot as plt
 import random
@@ -31,7 +33,10 @@ get_ipython().run_line_magic('matplotlib', 'qt')
 #sLength = l/3
 #t = 4444 #sample
 def compare(method,true,prediction):
-    
+    figure3 = plt.figure()
+    plt.plot(true)
+    plt.plot(prediction)
+    figure3.show()
     if method == 'MSE':
         x = mean_squared_error(true,prediction)
     elif method == 'R2':
@@ -55,6 +60,8 @@ def show_signal(input_feature):
 def scale_signal(input_feature):
     sc= MinMaxScaler(feature_range=(0,1))
     input_feature[:,:] = sc.fit_transform(input_feature[:,:])
+    plt.plot(input_feature[:,1])
+    return input_feature
     
    
 def pick_sample(t,l,input_feature):
@@ -125,13 +132,16 @@ def prep_sample(sample,sLength,l):
     
     return input_x, input_y
 
-    
+
 def create_model_cnn(train_data_input,train_data_output,act,opt,los,ks,sLength):
     model_cnn= Sequential()
     model_cnn.add(Conv1D(filters=50, kernel_size=ks, activation=act, input_shape=(train_data_input.shape[1],3)))
+    model_cnn.add(Conv1D(filters = 25, kernel_size = 50, activation = act))
     model_cnn.add(MaxPooling1D(pool_size=100))
+    # model_cnn.add(Conv1D(filters=50, kernel_size=ks, activation=act))
+    # model_cnn.add(MaxPooling1D(pool_size=25))
     model_cnn.add(Flatten())
-    model_cnn.add(Dense(2*sLength, activation=act))
+    model_cnn.add(Dense(2*sLength, activation='relu'))
     model_cnn.add(Dense(sLength))
     model_cnn.compile(optimizer=opt, loss=los)
     history_cnn = model_cnn.fit(train_data_input,train_data_output , epochs=100)
@@ -147,7 +157,7 @@ def create_model_lstm(train_data_input,train_data_output,act,opt,los,u,sLength):
     model_lstm.add(Dense(units=sLength))
     model_lstm.summary()
     model_lstm.compile(optimizer=opt, loss=los)
-    history_lstm = model_lstm.fit(train_data_input, train_data_output, epochs=50, batch_size=32)
+    history_lstm = model_lstm.fit(train_data_input, train_data_output, epochs=25, batch_size=32)
     return model_lstm, history_lstm
 
 def create_model_gru(train_data_input,train_data_output,act,opt,los,u,sLength):
@@ -159,7 +169,7 @@ def create_model_gru(train_data_input,train_data_output,act,opt,los,u,sLength):
     model_gru.add(Dense(units=sLength))
     model_gru.summary()
     model_gru.compile(optimizer=opt, loss=los)
-    history_gru = model_gru.fit(train_data_input, train_data_output, epochs=50, batch_size=32)
+    history_gru = model_gru.fit(train_data_input, train_data_output, epochs=25, batch_size=32)
     return model_gru, history_gru
 def show(pred):
     plt.plot(pred)
