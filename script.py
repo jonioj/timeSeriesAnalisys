@@ -12,18 +12,15 @@ import numpy as np
 import pandas as pd
 from scipy.io import loadmat
 from keras import backend as K
-K.set_image_dim_ordering('th')
+from keras.layers import Dropout
 
 import matplotlib.pyplot as plt
 import random
 #import statsmodels.api as sm
 from IPython import get_ipython
-from sklearn.metrics import mean_squared_error, mean_squared_log_error,r2_score
+from sklearn.metrics import mean_squared_error,mean_absolute_error, mean_squared_log_error,r2_score
 
-true = [1,1,1]
-pred = [1,0,1]
-true = np.array(true)
-pred = np.array(pred)
+
 #signal = pd.read_csv("syg1.csv")
 #
 #input_feature= signal.iloc[:,[2,5]].values
@@ -41,8 +38,8 @@ def compare(method,true,prediction):
         x = mean_squared_error(true,prediction)
     elif method == 'R2':
         x = r2_score(true, prediction, sample_weight=None, multioutput='uniform_average')
-    elif method == 'MGD':
-        x = mean_squared_log_error(true, prediction, sample_weight=None, multioutput='uniform_average')
+    elif method == 'MAE':
+        x = mean_absolute_error(true, prediction, sample_weight=None, multioutput='uniform_average')
 
     return x
 
@@ -60,7 +57,6 @@ def show_signal(input_feature):
 def scale_signal(input_feature):
     sc= MinMaxScaler(feature_range=(0,1))
     input_feature[:,:] = sc.fit_transform(input_feature[:,:])
-    plt.plot(input_feature[:,1])
     return input_feature
     
    
@@ -71,29 +67,25 @@ def prep_sample(sample,sLength,l):
     X_one = sample[0:sLength,0]
     X_two = sample[sLength:sLength*l,0]
     X_prim =sample[2*sLength:3*sLength,0]
-   
     Y_one = sample[0:sLength,1]
     Y_two = sample[sLength:2*sLength,1]
     Y_prim = sample[2*sLength:3*sLength,1]
     df = pd.DataFrame(list(zip(X_one, X_two, X_prim,Y_one,Y_two,Y_prim)), 
                columns =['X_one', 'X_two','X_prim','Y_one','Y_two','Y_prim'])
-    
     #Predicting Signal 1
     train_data =  [df.iloc[:,0].values,df.iloc[:,3].values,df.iloc[:,4].values] #X1 Y1 Y2
     train_data = np.array(train_data)
     train_data= train_data.transpose()
-    
+    print(np.shape(train_data))
     train_data = train_data.reshape(1,sLength,3)
     train_data_y = df.iloc[:,1].values #X2
     train_data_y = np.array(train_data_y)
-    train_data_y = train_data_y.reshape(1,sLength)
-    
+    train_data_y = train_data_y.reshape(1,sLength)    
     test_data = []
     test_data =  [df.iloc[:,1].values,df.iloc[:,4].values,df.iloc[:,5].values] #X2 Y2 Y3
     test_data = np.array(test_data)
     test_data= test_data.transpose()
-    test_data = test_data.reshape(1,sLength,3)
-    
+    test_data = test_data.reshape(1,sLength,3)    
     test_data_y = df.iloc[:,2].values #X3
     test_data_y = np.array(test_data_y)
     test_data_y = test_data_y.reshape(1,sLength) 
@@ -101,76 +93,75 @@ def prep_sample(sample,sLength,l):
     input_x.append(train_data)
     input_x.append(train_data_y)
     input_x.append(test_data)
-    input_x.append(test_data_y)
-    
+    input_x.append(test_data_y)  
     #Predicting Signal 2
     train_data = []
     train_data =  [df.iloc[:,3].values,df.iloc[:,0].values,df.iloc[:,1].values] #Y1 X1 X2
     train_data = np.array(train_data)
-    train_data= train_data.transpose()
-    
+    train_data= train_data.transpose()   
     train_data = train_data.reshape(1,sLength,3)
     train_data_y = df.iloc[:,4].values #Y2
     train_data_y = np.array(train_data_y)
-    train_data_y = train_data_y.reshape(1,sLength)
-    
+    train_data_y = train_data_y.reshape(1,sLength) 
     test_data = []
     test_data =  [df.iloc[:,4].values,df.iloc[:,1].values,df.iloc[:,3].values] #Y2 X2 X3
     test_data = np.array(test_data)
     test_data= test_data.transpose()
-    test_data = test_data.reshape(1,sLength,3)
-    
+    test_data = test_data.reshape(1,sLength,3) 
     test_data_y = df.iloc[:,5].values #Y3
     test_data_y = np.array(test_data_y)
-    test_data_y = test_data_y.reshape(1,sLength) 
-    
+    test_data_y = test_data_y.reshape(1,sLength)  
     input_y = []
     input_y.append(train_data)
     input_y.append(train_data_y)
     input_y.append(test_data)
     input_y.append(test_data_y)
-    
     return input_x, input_y
 
 
 def create_model_cnn(train_data_input,train_data_output,act,opt,los,ks,sLength):
     model_cnn= Sequential()
     model_cnn.add(Conv1D(filters=50, kernel_size=ks, activation=act, input_shape=(train_data_input.shape[1],3)))
-    model_cnn.add(Conv1D(filters = 25, kernel_size = 50, activation = act))
+    model_cnn.add(Conv1D(filters = 25, kernel_size = int(ks/2), activation = act))
+    model_cnn.add(Dropout(0.2, noise_shape=None, seed=None))
     model_cnn.add(MaxPooling1D(pool_size=100))
-    # model_cnn.add(Conv1D(filters=50, kernel_size=ks, activation=act))
-    # model_cnn.add(MaxPooling1D(pool_size=25))
     model_cnn.add(Flatten())
     model_cnn.add(Dense(2*sLength, activation='relu'))
     model_cnn.add(Dense(sLength))
     model_cnn.compile(optimizer=opt, loss=los)
-    history_cnn = model_cnn.fit(train_data_input,train_data_output , epochs=100)
+    #history_cnn = model_cnn.fit(train_data_input,train_data_output , epochs=100)
     
-    return model_cnn, history_cnn
+    return model_cnn
+def train_model_cnn(model_cnn,train_data_input,train_data_output):
+    history_cnn = model_cnn.fit(train_data_input,train_data_output,epochs = 50)
+    return model_cnn,history_cnn
 
 def create_model_lstm(train_data_input,train_data_output,act,opt,los,u,sLength):
     model_lstm = Sequential()
     model_lstm.add(LSTM(units=u, return_sequences= True, input_shape=(sLength,3)))
-    #model_lstm.add(LSTM(units=u, return_sequences=True))
     model_lstm.add(LSTM(units=u))
     model_lstm.add(Dense(2*sLength, activation=act))
     model_lstm.add(Dense(units=sLength))
     model_lstm.summary()
     model_lstm.compile(optimizer=opt, loss=los)
-    history_lstm = model_lstm.fit(train_data_input, train_data_output, epochs=25, batch_size=32)
-    return model_lstm, history_lstm
-
+    #history_lstm = model_lstm.fit(train_data_input, train_data_output, epochs=25, batch_size=32)
+    return model_lstm
+def train_model_lstm(model_lstm,train_data_input,train_data_output):
+    history_lstm = model_lstm.fit(train_data_input, train_data_output, epochs=15, batch_size=32)
+    return model_lstm,history_lstm
 def create_model_gru(train_data_input,train_data_output,act,opt,los,u,sLength):
     model_gru = Sequential()
     model_gru.add(GRU(units=u, return_sequences= True, input_shape=(train_data_input.shape[1],3)))
-    #model_gru.add(GRU(units=u, return_sequences=True))
     model_gru.add(GRU(units=u))
     model_gru.add(Dense(2*sLength, activation=act))
     model_gru.add(Dense(units=sLength))
     model_gru.summary()
     model_gru.compile(optimizer=opt, loss=los)
-    history_gru = model_gru.fit(train_data_input, train_data_output, epochs=25, batch_size=32)
-    return model_gru, history_gru
+    #history_gru = model_gru.fit(train_data_input, train_data_output, epochs=25, batch_size=32)
+    return model_gru
+def train_model_gru(model_gru,train_data_input,train_data_output):
+    history_gru = model_gru.fit(train_data_input, train_data_output, epochs=15, batch_size=32)
+    return model_gru,history_gru
 def show(pred):
     plt.plot(pred)
 
