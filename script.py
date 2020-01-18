@@ -21,6 +21,19 @@ from IPython import get_ipython
 from sklearn.metrics import mean_squared_error,mean_absolute_error, mean_squared_log_error,r2_score
 
 
+
+# fig = plt.figure()
+# one = fig.add_subplot(2,1,1)
+# plt.plot(x[:,0])
+# plt.title("Sygnał oddechowy")
+# plt.ylabel('Napięcie [V]')
+# plt.xlabel('Index')
+# two = fig.add_subplot(2, 1, 2)
+# plt.plot(x[:,1])
+# plt.title("Tachogram")
+# plt.ylabel('Czas [s]')
+# plt.xlabel('Index')
+# plt.show()
 #signal = pd.read_csv("syg1.csv")
 #
 #input_feature= signal.iloc[:,[2,5]].values
@@ -29,10 +42,13 @@ get_ipython().run_line_magic('matplotlib', 'qt')
 #l = 750 #sample length
 #sLength = l/3
 #t = 4444 #sample
-def compare(method,true,prediction):
+def compare(method,true,prediction,signal):
     figure3 = plt.figure()
     plt.plot(true)
+    plt.ylabel(signal)
+    plt.xlabel('Index')
     plt.plot(prediction)
+    plt.legend(['Real values','Predicted values'])
     figure3.show()
     if method == 'MSE':
         x = mean_squared_error(true,prediction)
@@ -48,9 +64,13 @@ def show_signal(input_feature):
     fig = plt.figure()
     one = fig.add_subplot(2,1,1)
     plt.plot(input_feature[:,0])
+    plt.ylabel('Normalized values')
     plt.title("Signal X")
+    plt.xlabel("Index")
     two = fig.add_subplot(2, 1, 2)
     plt.plot(input_feature[:,1])
+    plt.ylabel('Normalized values')
+    plt.xlabel('Index')
     plt.title("Signal Y")
     plt.show()
     
@@ -123,7 +143,7 @@ def create_model_cnn(train_data_input,train_data_output,act,opt,los,ks,sLength):
     model_cnn= Sequential()
     model_cnn.add(Conv1D(filters=50, kernel_size=ks, activation=act, input_shape=(train_data_input.shape[1],3)))
     model_cnn.add(Conv1D(filters = 25, kernel_size = int(ks/2), activation = act))
-    model_cnn.add(Dropout(0.2, noise_shape=None, seed=None))
+    #model_cnn.add(Dropout(0.5, noise_shape=None, seed=None))
     model_cnn.add(MaxPooling1D(pool_size=100))
     model_cnn.add(Flatten())
     model_cnn.add(Dense(2*sLength, activation='relu'))

@@ -57,12 +57,14 @@ def sample():
         
         
         for i in range(10):
-            s = script.pick_sample(t-i*50,l,input_feature)
+            s = script.pick_sample(t-20*i,l,input_feature)
             #script.show_signal(s)
             #print(l)
             input_x, input_y = script.prep_sample(s,int(l/3),l)
             inputs_x.append(input_x)
             inputs_y.append(input_y)
+            inputs_y.reverse()
+            inputs_x.reverse()
         
         print("ready to analyze")
     
@@ -88,6 +90,14 @@ def analyse():
         model = script.create_model_cnn(inpt[0][0],inpt[0][1],activation.get(),optimizer.get(),loss.get(),int(e4.get()),int(l/3))
         for i in range(len(inputs_x)):
             model,history = script.train_model_cnn(model,inpt[i][0],inpt[i][1])
+        f = plt.figure()
+        plt.plot(history.history['loss'])
+        plt.title('Model loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.show()
+        
+
         # prediction_cnn = model.predict(inpt[2])
         # print(prediction_cnn)
         # pred = np.transpose(prediction_cnn)
@@ -100,6 +110,12 @@ def analyse():
         model= script.create_model_lstm(inpt[0][0],inpt[0][1],activation.get(),optimizer.get(),loss.get(),int(e3.get()),int(l/3))
         for i in range(len(inputs_x)):
             model.history = script.train_model_lstm(model,inpt[i][0],inpt[i][1])
+        f = plt.figure()
+        plt.plot(history.history['loss'])
+        plt.title('Model loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.show()
         # prediction_lstm = model.predict(inpt[2])
         # print(prediction_lstm)
         # pred = np.transpose(prediction_lstm)
@@ -108,9 +124,15 @@ def analyse():
         # fig4.show()
         
     elif(method.get() == 'GRU'):
-        model,history = script.create_model_gru(inpt[0][0],inpt[0][1],activation.get(),optimizer.get(),loss.get(),int(e4.get()),int(l/3))
+        model = script.create_model_gru(inpt[0][0],inpt[0][1],activation.get(),optimizer.get(),loss.get(),int(e4.get()),int(l/3))
         for i in range(len(inputs_x)):
             model.history = script.train_model_gru(model,inpt[i][0],inpt[i][1])
+         f = plt.figure()
+        plt.plot(history.history['loss'])
+        plt.title('Model loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.show()
         # prediction_gru = model.predict(inpt[2])
         # print(prediction_gru)
         # pred = np.transpose(prediction_gru)
@@ -133,28 +155,34 @@ def predict():
     elif (var2.get() == 'Signal Y'):
         inpt = inputs_y
     if (method.get() =='CNN'):
-        prediction_cnn = model.predict(inpt[0][2])
+        prediction_cnn = model.predict(inpt[-1][2])
         print(prediction_cnn)
         pred = np.transpose(prediction_cnn)
         fig3 = plt.figure()
         plt.plot(pred)
+        plt.ylabel(var2.get())
+        plt.xlabel('Index')
         fig3.show()
         
         
     elif(method.get() == 'LSTM'):
-        prediction_lstm = model.predict(inpt[0][2])
+        prediction_lstm = model.predict(inpt[-1][2])
         print(prediction_lstm)
         pred = np.transpose(prediction_lstm)
         fig4 = plt.figure()
         plt.plot(pred)
+        plt.ylabel(var2.get())
+        plt.xlabel('Index')
         fig4.show()
         
     elif(method.get() == 'GRU'):
-        prediction_gru = model.predict(inpt[0][2])
+        prediction_gru = model.predict(inpt[-1][2])
         print(prediction_gru)
         pred = np.transpose(prediction_gru)
         fig5 = plt.figure()
         plt.plot(pred)
+        plt.ylabel(var2.get())
+        plt.xlabel('Index')
         fig5.show()
     else:
         print("Something is wrong")
@@ -162,8 +190,8 @@ def predict():
 def compare():
     if var3.get():
         try:
-            print(script.compare(var3.get(),np.transpose(inpt[0][3]),pred))
-            x = script.compare(var3.get(),np.transpose(inpt[0][3]),pred)
+            
+            x = script.compare(var3.get(),np.transpose(inpt[-1][3]),pred,var2.get())
             tk.Label(root,text='Accuracy assessment').grid(row=7, column = 3)
             tk.Label(root,text=x).grid(row=7, column = 4)
             
@@ -202,7 +230,7 @@ e4.grid(row=3,column = 5)
 
 
 
-B1 = tk.Button(root,text="show sample",command = sample).grid(row =2, column= 2)
+B1 = tk.Button(root,text="Prepare samples",command = sample).grid(row =2, column= 2)
 
 
 
